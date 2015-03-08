@@ -1,5 +1,13 @@
+#include <math.h>
+
+#ifdef __linux__
+    #include "SDL2/SDL.h"
+#elif _WIN32
+    #include "SDL.h"
+#endif
+
 #include "engine_types.h"
-#include "SDL2/SDL.h"
+
 
 Vector3 vector3Add(Vector3 vec1, Vector3 vec2)
 {

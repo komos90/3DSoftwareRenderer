@@ -1,0 +1,1 @@
+cd bin && wingame.exe && cd ..
