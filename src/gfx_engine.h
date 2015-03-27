@@ -16,10 +16,10 @@ seoras1@gmail.com
 #include "engine_types.h"
 
 //Projection Constants
-static const int VIEW_WIDTH    = 1366;
-static const int VIEW_HEIGHT   = 768;
-static const int Z_FAR         = 500;
-static const int Z_NEAR        = 10;
+static const int VIEW_WIDTH    = 427;//1366;
+static const int VIEW_HEIGHT   = 240;//768;
+static const int Z_FAR         = 1000;
+static const int Z_NEAR        = 50;
 static const float FOV_X       = 10000;//1280;//1.5f;
 static const float FOV_Y       = 10000;//960;//1.5f;
 
@@ -33,3 +33,4 @@ void draw (PixelBuffer pixelBuffer, Entity camera, Entity* entityList, int entit
 Matrix4 mulMatrix4 (Matrix4 mat1, Matrix4 mat2);
 Vector3 transform (Matrix4 matrix, Vector3 vector);
 Mesh loadMeshFromFile (char* fileName);
+void initGfxEngine();

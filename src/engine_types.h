@@ -35,6 +35,12 @@ typedef struct
 
 typedef struct
 {
+    Vector3 normal;
+    float distance;
+} Plane;
+
+typedef struct
+{
     float x;
     float y;
     float z;
@@ -52,6 +58,11 @@ typedef struct
 {
     float values[16];
 } Matrix4;
+
+typedef struct
+{
+    Plane sides[5];
+} Frustrum;
 
 typedef struct
 {

@@ -4,7 +4,6 @@ Seoras Macdonald
 seoras1@gmail.com
 2015
 */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -25,8 +24,8 @@ seoras1@gmail.com
 #include "meshes.h"
 #include "gfx_engine.h"
 
-static const int SCREEN_WIDTH  = 427;//854;//300;//640;
-static const int SCREEN_HEIGHT = 240;//480;//300;//480;
+static const int SCREEN_WIDTH  = 854;//300;//640;
+static const int SCREEN_HEIGHT = 480;//300;//480;
 
 //Temp Globals
 
@@ -94,6 +93,8 @@ int main( int argc, char* args[] )
     float*  zBuffer = (float*) malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(float));
     PixelBuffer pixelBuffer = {pixels, zBuffer, SCREEN_WIDTH, SCREEN_HEIGHT};
 
+    initGfxEngine();
+
     //Initialise Meshes and Entities ====
     //Load meshes
     cubeMesh = loadMeshFromFile("../res/meshes/cube.raw");
@@ -107,8 +108,7 @@ int main( int argc, char* args[] )
     EntityArray entities = createLevelEntities(level); 
     //EntityArray entities;
     //entities.data = (Entity*)malloc(sizeof(Entity));
-    //Entity temp = {.position = {400, 0, 200}, .mesh=monkeyHd, .scale={100, 100, 100}, .rotation={M_PI/2,0,0},
-    //               .collisionBox={-100, -100, -100, 200, 200, 200}};
+    //Entity temp = {.position = {400, 0, 200}, .mesh=monkey, .scale={100, 100, 100}, .rotation={M_PI/2,0,0}};
     //entities.data[0] = temp;
     //entities.length = 1;
 
@@ -162,7 +162,7 @@ int main( int argc, char* args[] )
                         }
                         break;
                     case SDLK_SPACE:
-                        paused = !paused;
+                        camera.position.y += 50;
                         break;
                     case SDLK_1:
                         shouldDrawWireframe = !shouldDrawWireframe;
@@ -260,8 +260,6 @@ int main( int argc, char* args[] )
                 camera.position = oldCameraPos;
             }
         }
-
-        
         
         if(!paused)
         {

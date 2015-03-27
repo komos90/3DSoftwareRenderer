@@ -24,6 +24,9 @@ seoras1@gmail.com
 #include "gfx_engine.h"
 #include "engine_types.h"
 
+
+static Frustrum frustrum;
+
 void drawRect(SDL_Rect rect, uint32_t color, PixelBuffer pixelBuffer)
 {
     if (rect.y < 0) rect.y = 0;
@@ -246,7 +249,6 @@ Vector3 transform(Matrix4 matrix, Vector3 vector)
 
 bool isInsideRect(Vector3 vector, SDL_Rect rect)
 {
-    //SDL_Log("vx %f vy %f vz %f rx %d ry %d rw %d rh %d", vector.x, vector.y, vector.z, rect.x, rect.y, rect.w, rect.h);
     return vector.x >= rect.x && vector.x <= rect.x + rect.w &&
            vector.y >= rect.y && vector.y <= rect.y + rect.h;
 }
@@ -312,14 +314,44 @@ Vector3 getIntersect(Vector3 start, Vector3 end, SDL_Rect rect)
             y0 += sy;
         }
     }
-    //HACK Watch out
-    //SDL_Log("Intersect Error!: x0 %f, y0 %f x1 %f y1 %f rectx %d recty %d rectw %d recth %d", start.x, start.y, end.x, end.y, rect.x, rect.y, rect.w, rect.h);
     return getIntersect(end, start, rect);
 }
 
 bool vectorZOutOfRange(Vector3 vector) {
     //TODO set these as constants
     return vector.z <= 10000000.f || vector.z >= 14000000;
+}
+
+void initGfxEngine()
+{
+    float vFov = 0.58;
+    float hFov = 0.62;
+
+    //TOP
+    frustrum.sides[0].normal.x = 0;
+    frustrum.sides[0].normal.y = cosf(vFov);
+    frustrum.sides[0].normal.z = sinf(vFov);
+    frustrum.sides[0].distance = 0;
+    //BOTTOM
+    frustrum.sides[1].normal.x = 0;
+    frustrum.sides[1].normal.y = -cosf(vFov);
+    frustrum.sides[1].normal.z = sinf(vFov);
+    frustrum.sides[1].distance = 0;
+    //LEFT
+    frustrum.sides[2].normal.x = cosf(hFov);
+    frustrum.sides[2].normal.y = 0;
+    frustrum.sides[2].normal.z = sinf(vFov);
+    frustrum.sides[2].distance = 0;
+    //RIGHT
+    frustrum.sides[3].normal.x = -cosf(hFov);
+    frustrum.sides[3].normal.y = 0;
+    frustrum.sides[3].normal.z = sinf(vFov);
+    frustrum.sides[3].distance = 0;
+    //FRONT
+    frustrum.sides[4].normal.x = 0;
+    frustrum.sides[4].normal.y = 0;
+    frustrum.sides[4].normal.z = 1;
+    frustrum.sides[4].distance = -10;
 }
 
 //Has some temp debug parameters
@@ -424,9 +456,11 @@ void draw(
             w/2, 0  ,0  , w/2,
             0  , h/2,0  , h/2,
             0  , 0  ,d/2, d/2,
-             0  , 0  ,0  , 1
+            0  , 0  ,0  , 1
         }};
         
+        
+
         //Combine matrices into one transformation matrix
         //Model Space -> World Space
         Matrix4 finalTransform = mulMatrix4(xRotMat, scaleMat);
@@ -437,151 +471,105 @@ void draw(
         finalTransform = mulMatrix4(cameraTranslate, finalTransform);    
         finalTransform = mulMatrix4(cameraYRotation, finalTransform);    
         finalTransform = mulMatrix4(cameraXRotation, finalTransform);    
-        //View Space -> Projection Space
-        finalTransform = mulMatrix4(perspectiveProjection, finalTransform);    
 
         //For each polygon
         for (int i = 0; i < entity->mesh.polyCount; i++)
         {    
-            Triangle displayPoly;
+            Triangle displayTriangle;
 
             //For each vertex
             for (int j = 0; j < 3; j++)
             {
                 //Convert triangular Vector3 polygon to up to five vector4s
-                displayPoly.vectors[j].x = entityList[k].mesh.polygons[i].vectors[j].x;
-                displayPoly.vectors[j].y = entityList[k].mesh.polygons[i].vectors[j].y;
-                displayPoly.vectors[j].z = entityList[k].mesh.polygons[i].vectors[j].z;
+                displayTriangle.vectors[j].x = entityList[k].mesh.polygons[i].vectors[j].x;
+                displayTriangle.vectors[j].y = entityList[k].mesh.polygons[i].vectors[j].y;
+                displayTriangle.vectors[j].z = entityList[k].mesh.polygons[i].vectors[j].z;
 
                 //Apply all transformations =====
-                displayPoly.vectors[j] = transform(finalTransform, displayPoly.vectors[j]);
-                
-                //Projection Space -> Screen Friendly
-                displayPoly.vectors[j] = transform(correctForScreen, displayPoly.vectors[j]);
-
+                displayTriangle.vectors[j] = transform(finalTransform, displayTriangle.vectors[j]);
             }
 
-            //1.clip by screen rectangle
-            //Parameters Vector3 vector, SDL_Rect screenRect
-            //Returns Vector3[5] pentagon, int polygonSize
-            Vector3 clippedPolygon[5];
-            int clippedPolyTriangleCount = 0;
+            //Clip polygon against view frustrum
+            Vector3 inPoly[7];
+            inPoly[0] = displayTriangle.vectors[0];
+            inPoly[1] = displayTriangle.vectors[1];
+            inPoly[2] = displayTriangle.vectors[2];
+            Vector3 outPoly[7];
+            int vertexIndex = 0;
+            int vertexTotal = 3;
+            for (int l = 0; l < 5; l++)
             {
-                //for each vertex in Triangle
-                //1.Check vertex[i] and vertex[(i+1) % polyLen] is inside
-                //the screenRect and set is1Inside and is2Inside bits occordingly
-                //(use a bitfield)
-                //2.go through the Sutheran-Hodgman cases for the 2 vertices
-                //For finding the intersection use Bresenham line algo.
-                //until line is on the screenRect boundary, then add that point
-                //to outPoly
-                
-                int clippedPolyLen = 0;
-                int inputPolyLen = 3;
-                Vector3 inputPoly[5];
-                inputPoly[0] = displayPoly.vectors[0];
-                inputPoly[1] = displayPoly.vectors[1];
-                inputPoly[2] = displayPoly.vectors[2];
-                SDL_Rect screenRect = {pixelBuffer.width/4, 0, (pixelBuffer.width * 3)/4, pixelBuffer.height};
-
-                for (int k = 0; k < 4; k++)
+                vertexIndex = 0;
+                for (int j = 0; j < vertexTotal; j++)
                 {
-                    
-                    switch (k)
+                    float firstDistance = inPoly[j].x * frustrum.sides[l].normal.x + 
+                        inPoly[j].y * frustrum.sides[l].normal.y + 
+                        inPoly[j].z * frustrum.sides[l].normal.z
+                        - frustrum.sides[l].distance;
+                    float secondDistance = inPoly[(j+1)%vertexTotal].x * frustrum.sides[l].normal.x + 
+                        inPoly[(j+1)%vertexTotal].y * frustrum.sides[l].normal.y + 
+                        inPoly[(j+1)%vertexTotal].z * frustrum.sides[l].normal.z
+                        - frustrum.sides[l].distance;
+                    float scaling = firstDistance/(firstDistance - secondDistance);
+                    bool firstInside = true;
+                    bool secondInside = true;
+                    if (firstDistance < 0)
                     {
-                        case 3:
-                            screenRect.x = 0;
-                            screenRect.y = 0;
-                            screenRect.w = (pixelBuffer.width * 3)/4;
-                            screenRect.h = pixelBuffer.height;
-                            break;
-                        case 1:
-                            screenRect.x = 0;
-                            screenRect.y = pixelBuffer.height/4;
-                            screenRect.w = pixelBuffer.width;
-                            screenRect.h = (pixelBuffer.height * 3)/4;
-                            break;
-                        case 2:
-                            screenRect.x = 0;
-                            screenRect.y = 0;
-                            screenRect.w = pixelBuffer.width;
-                            screenRect.h = (pixelBuffer.height * 3)/4;
-                            break;
+                        firstInside = false;
                     }
-                    
-                    //TEST
-                    screenRect.x *= 2;
-                    screenRect.x -= pixelBuffer.width/2;
-                    screenRect.y *= 2;
-                    screenRect.y -= pixelBuffer.height/2;
-                    screenRect.w *= 2;
-                    screenRect.h *= 2;
-                    
-                    
-                    clippedPolyLen = 0;
-                    for (int j = 0; j < inputPolyLen; j++)
+                    if (secondDistance < 0)
                     {
-                        uint8_t insideBitField = 0;
-                        if (isInsideRect(inputPoly[j], screenRect))
-                            insideBitField |= 0x1;
-                        if (isInsideRect(inputPoly[(j + 1) % inputPolyLen], screenRect))
-                            insideBitField |= 0x2;
-                        if (vectorZOutOfRange(inputPoly[j]) ||
-                            vectorZOutOfRange(inputPoly[(j + 1) % inputPolyLen]))
-                            continue;
-                             
-                        //Switch over the Sutherland-Hodgman cases
-                        switch (insideBitField)
-                        {
-                            case 0:
-                            //Both outside
-                            break;
-                            case 1:
-                            //First vector inside
-                            clippedPolygon[clippedPolyLen++] = inputPoly[j];
-                            clippedPolygon[clippedPolyLen++] = getIntersect(inputPoly[j], inputPoly[(j + 1) % inputPolyLen], screenRect);
-                            break;
-                            case 2:
-                            //Second vector inside
-                            clippedPolygon[clippedPolyLen++] = getIntersect(inputPoly[j], inputPoly[(j + 1) % inputPolyLen], screenRect);
-                            break;
-                            case 3:
-                            //Both inside
-                            clippedPolygon[clippedPolyLen++] = inputPoly[j];
-                            break;
-                        }
+                        secondInside = false;
                     }
-                    inputPoly[0] = clippedPolygon[0];
-                    inputPoly[1] = clippedPolygon[1];
-                    inputPoly[2] = clippedPolygon[2];
-                    inputPoly[3] = clippedPolygon[3];
-                    inputPoly[4] = clippedPolygon[4];
-                    
-                    inputPolyLen = clippedPolyLen;
+
+                    if (firstInside && secondInside)
+                    {
+                        outPoly[vertexIndex++] = inPoly[j];
+                    }
+                    else if (firstInside && !secondInside)
+                    {
+                        outPoly[vertexIndex++] = inPoly[j];
+                        outPoly[vertexIndex].x = inPoly[j].x + scaling * (inPoly[(j+1)%vertexTotal].x - inPoly[j].x);
+                        outPoly[vertexIndex].y = inPoly[j].y + scaling * (inPoly[(j+1)%vertexTotal].y - inPoly[j].y);
+                        outPoly[vertexIndex].z = inPoly[j].z + scaling * (inPoly[(j+1)%vertexTotal].z - inPoly[j].z);
+                        vertexIndex++;
+                    }
+                    else if (!firstInside && secondInside)
+                    {
+                        outPoly[vertexIndex].x = inPoly[j].x + scaling * (inPoly[(j+1)%vertexTotal].x - inPoly[j].x);
+                        outPoly[vertexIndex].y = inPoly[j].y + scaling * (inPoly[(j+1)%vertexTotal].y - inPoly[j].y);
+                        outPoly[vertexIndex].z = inPoly[j].z + scaling * (inPoly[(j+1)%vertexTotal].z - inPoly[j].z);
+                        vertexIndex++;
+                    }
                 }
-                if (clippedPolyLen > 5) clippedPolyLen =  5; //THIS STOPS A SEGFAULT
-                clippedPolyTriangleCount = clippedPolyLen - 2;
+                memcpy(inPoly, outPoly, 7 * sizeof(Vector3));
+                vertexTotal = vertexIndex;
             }
 
-            Triangle clippedTriangles[3];
-            for (int j = 0; j < clippedPolyTriangleCount; j++)
+            int triangleCount = (vertexTotal - 2);
+            
+            for (int l = 0; l < triangleCount; l++)
             {
-                //2.convert pentagon(at most) to 3 triangles
-                //Returns Triangle[3] clippedPolygons
-                //TODO I think some of these are being wound the wrong way
-                clippedTriangles[j].vectors[0] = clippedPolygon[0];
-                clippedTriangles[j].vectors[1] = clippedPolygon[1 + j];
-                clippedTriangles[j].vectors[2] = clippedPolygon[2 + j];
+                displayTriangle.vectors[0] = outPoly[0];
+                displayTriangle.vectors[1] = outPoly[l+1];
+                displayTriangle.vectors[2] = outPoly[l+2];
 
-                if(shouldDrawSurfaces)
+                for (int j = 0; j < 3; j++)
                 {
-                    rasterizePolygon(clippedTriangles[j], entity->color, pixelBuffer);
+                    //Projection Space -> Screen Friendly
+                    displayTriangle.vectors[j] = transform(perspectiveProjection, displayTriangle.vectors[j]);
+                    displayTriangle.vectors[j] = transform(correctForScreen, displayTriangle.vectors[j]);
+                }
+
+                if(shouldDrawSurfaces && vertexIndex > 0)
+                {
+                    rasterizePolygon(displayTriangle, entity->color, pixelBuffer);
                 }
                 //Only draw lines between vectors that haven't been culled
                 if(shouldDrawWireframe)
                 {
                     for (int k = 0; k < 3; k++)
-                        drawLine(clippedTriangles[j].vectors[k], clippedTriangles[j].vectors[(k + 1) % 3], lineColor, pixelBuffer);        
+                        drawLine(displayTriangle.vectors[k], displayTriangle.vectors[(k + 1) % 3], lineColor, pixelBuffer);        
                 }
             }
         }
@@ -643,7 +631,7 @@ Mesh loadMeshFromFile(char* fileName)
         mesh.polygons[i].vectors[2].x = vertices[6];
         mesh.polygons[i].vectors[2].y = vertices[7];
         mesh.polygons[i].vectors[2].z = vertices[8];
-        if (fgets(line, 255, file) == NULL) SDL_Log("fgets error in loadMeshFromFile()!");
+        fgets(line, 255, file);
         i++;
     }
     return mesh;
