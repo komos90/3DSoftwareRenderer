@@ -26,6 +26,8 @@ seoras1@gmail.com
 
 
 static Frustrum frustrum;
+//TEST
+PointLight light = { .pos={0, 0, 0} };
 
 void drawRect(SDL_Rect rect, uint32_t color, PixelBuffer pixelBuffer)
 {
@@ -367,6 +369,9 @@ void draw(
     SDL_Rect rect = {0, floorYStart, pixelBuffer.width, pixelBuffer.height};
     drawRect(rect, 0x33333333, pixelBuffer);
 
+    //TEST
+    //light.pos = camera.position;
+
     for (int k = 0; k < entityCount; k++) 
     {
         Entity* entity = &entityList[k];
@@ -460,33 +465,44 @@ void draw(
         }};
         
         
-
         //Combine matrices into one transformation matrix
         //Model Space -> World Space
-        Matrix4 finalTransform = mulMatrix4(xRotMat, scaleMat);
-        finalTransform = mulMatrix4(yRotMat, finalTransform);    
-        finalTransform = mulMatrix4(zRotMat, finalTransform);    
-        finalTransform = mulMatrix4(worldTranslate, finalTransform);
-        //World Space -> View Space    
-        finalTransform = mulMatrix4(cameraTranslate, finalTransform);    
-        finalTransform = mulMatrix4(cameraYRotation, finalTransform);    
-        finalTransform = mulMatrix4(cameraXRotation, finalTransform);    
+        Matrix4 worldSpaceTransform = mulMatrix4(xRotMat, scaleMat);
+        worldSpaceTransform = mulMatrix4(yRotMat, worldSpaceTransform);    
+        worldSpaceTransform = mulMatrix4(zRotMat, worldSpaceTransform);    
+        worldSpaceTransform = mulMatrix4(worldTranslate, worldSpaceTransform);
+        //World Space -> View Space      
+        Matrix4 viewSpaceTransform = mulMatrix4(cameraYRotation, cameraTranslate);    
+        viewSpaceTransform = mulMatrix4(cameraXRotation, viewSpaceTransform);    
 
-        //For each polygon
+        //For each triangle
         for (int i = 0; i < entity->mesh.polyCount; i++)
         {    
             Triangle displayTriangle;
-
             //For each vertex
             for (int j = 0; j < 3; j++)
             {
-                //Convert triangular Vector3 polygon to up to five vector4s
                 displayTriangle.vectors[j].x = entityList[k].mesh.polygons[i].vectors[j].x;
                 displayTriangle.vectors[j].y = entityList[k].mesh.polygons[i].vectors[j].y;
                 displayTriangle.vectors[j].z = entityList[k].mesh.polygons[i].vectors[j].z;
 
                 //Apply all transformations =====
-                displayTriangle.vectors[j] = transform(finalTransform, displayTriangle.vectors[j]);
+                displayTriangle.vectors[j] = transform(worldSpaceTransform, displayTriangle.vectors[j]);
+            }
+
+            uint32_t triangleColor;
+            {
+                Vector3 triangleNormal = getTriangleNormal(displayTriangle);
+                Vector3 lightDirection = vector3Sub(getTriangleCenter(displayTriangle), light.pos);
+                float cosOfAngleBetweenLightAndNormal = vector3Dot(triangleNormal, lightDirection)/(vector3Abs(triangleNormal) * vector3Abs(lightDirection));
+                float intensity = fmax(0, -cosOfAngleBetweenLightAndNormal);
+                uint8_t triangleColor8 = 0xFF * intensity;
+                triangleColor = 0xFF000000 | (triangleColor8 << 16) | (triangleColor8 << 8) | (triangleColor8);
+            }
+
+            for (int j = 0; j < 3; j++)
+            {
+                displayTriangle.vectors[j] = transform(viewSpaceTransform, displayTriangle.vectors[j]);
             }
 
             //Clip polygon against view frustrum
@@ -563,7 +579,7 @@ void draw(
 
                 if(shouldDrawSurfaces && vertexIndex > 0)
                 {
-                    rasterizePolygon(displayTriangle, entity->color, pixelBuffer);
+                    rasterizePolygon(displayTriangle, triangleColor, pixelBuffer);
                 }
                 //Only draw lines between vectors that haven't been culled
                 if(shouldDrawWireframe)

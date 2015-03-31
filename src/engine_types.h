@@ -66,6 +66,11 @@ typedef struct
 
 typedef struct
 {
+    Vector3 pos;
+} PointLight;
+
+typedef struct
+{
     int polyCount;
     Triangle* polygons;
 } Mesh;
@@ -87,6 +92,13 @@ typedef struct
 } EntityArray;
 
 Vector3 vector3Add(Vector3 vec1, Vector3 vec2);
+Vector3 vector3Sub(Vector3 vec1, Vector3 vec2);
 Vector3 vector3ScalarAdd(Vector3 vec1, float scalar);
 Vector3 vector3Floor(Vector3 vec);
+float vector3Dot(Vector3 vec1, Vector3 vec2);
+Vector3 vector3Cross(Vector3 vec1, Vector3 vec2);
+float vector3Abs(Vector3 vec);
+Vector3 vector3Normalize(Vector3 vec);
+Vector3 getTriangleNormal(Triangle tri);
+Vector3 getTriangleCenter(Triangle tri);
 bool doBoxesCollide(Box box1, Box box2);

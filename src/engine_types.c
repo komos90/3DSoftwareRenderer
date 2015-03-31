@@ -18,6 +18,15 @@ Vector3 vector3Add(Vector3 vec1, Vector3 vec2)
     return tmp;
 }
 
+Vector3 vector3Sub(Vector3 vec1, Vector3 vec2)
+{
+    Vector3 tmp;
+    tmp.x = vec1.x - vec2.x;
+    tmp.y = vec1.y - vec2.y;
+    tmp.z = vec1.z - vec2.z;
+    return tmp;
+}
+
 Vector3 vector3ScalarAdd(Vector3 vec1, float scalar)
 {
     Vector3 tmp;
@@ -31,6 +40,50 @@ Vector3 vector3Floor(Vector3 vec)
 {
     Vector3 tmp = {floor(vec.x), floor(vec.y), floor(vec.z)};
     return tmp;
+}
+
+float vector3Dot(Vector3 vec1, Vector3 vec2)
+{
+    return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
+}
+
+Vector3 vector3Cross(Vector3 vec1, Vector3 vec2)
+{
+    Vector3 returnVec = {
+        .x=vec1.y * vec2.z - vec1.z * vec2.y,
+        .y=vec1.x * vec2.z - vec1.z * vec2.x,
+        .z=vec1.x * vec2.y - vec1.y * vec2.x
+    };
+    return returnVec;
+}
+
+float vector3Abs(Vector3 vec)
+{
+    return sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+}
+
+Vector3 vector3Normalize(Vector3 vec)
+{
+    float magnitude = sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+    vec.x /= magnitude;
+    vec.y /= magnitude;
+    vec.z /= magnitude;
+    return vec;
+}
+
+Vector3 getTriangleNormal(Triangle tri) {
+    Vector3 vec1 = vector3Sub(tri.vectors[0], tri.vectors[1]);
+    Vector3 vec2 = vector3Sub(tri.vectors[0], tri.vectors[2]);
+    return vector3Normalize(vector3Cross(vec1, vec2));
+}
+
+Vector3 getTriangleCenter(Triangle tri)
+{
+    Vector3 sumVec = vector3Add(vector3Add(tri.vectors[0], tri.vectors[1]), tri.vectors[2]);
+    sumVec.x /= 3;
+    sumVec.y /= 3;
+    sumVec.z /= 3;
+    return sumVec;
 }
 
 bool doBoxesCollide(Box box1, Box box2)

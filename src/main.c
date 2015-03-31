@@ -105,10 +105,10 @@ int main( int argc, char* args[] )
 
     //Load level from file and add level entities to entity list
     Level level = loadLevel("../res/levels/level2.lvl");
-    EntityArray entities = createLevelEntities(level); 
+    EntityArray entities = createLevelEntities(level);
     //EntityArray entities;
     //entities.data = (Entity*)malloc(sizeof(Entity));
-    //Entity temp = {.position = {400, 0, 200}, .mesh=monkey, .scale={100, 100, 100}, .rotation={M_PI/2,0,0}};
+    //Entity temp = {.position = {400, 0, 200}, .mesh=monkeyHd, .scale={100, 100, 100}, .rotation={M_PI/2,0,0}};
     //entities.data[0] = temp;
     //entities.length = 1;
 
@@ -264,7 +264,7 @@ int main( int argc, char* args[] )
         if(!paused)
         {
             //entities.data[0].rotation.x += 0.01;
-            //entities.data[0].rotation.y += 0.01;
+            entities.data[0].rotation.y += 0.01;
         }    
        
         //Send game entities to gfx engine to be rendered 
