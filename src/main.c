@@ -104,13 +104,13 @@ int main( int argc, char* args[] )
     monkeySuperHd = loadMeshFromFile("../res/meshes/monkeysuperhd.raw");
 
     //Load level from file and add level entities to entity list
-    Level level = loadLevel("../res/levels/level2.lvl");
-    EntityArray entities = createLevelEntities(level);
-    //EntityArray entities;
-    //entities.data = (Entity*)malloc(sizeof(Entity));
-    //Entity temp = {.position = {400, 0, 200}, .mesh=monkeyHd, .scale={100, 100, 100}, .rotation={M_PI/2,0,0}};
-    //entities.data[0] = temp;
-    //entities.length = 1;
+    //Level level = loadLevel("../res/levels/level2.lvl");
+    //EntityArray entities = createLevelEntities(level);
+    EntityArray entities;
+    entities.data = (Entity*)malloc(sizeof(Entity));
+    Entity temp = {.position = {400, 0, 200}, .mesh=monkeyHd, .scale={100, 100, 100}, .rotation={M_PI/2,0,0}};
+    entities.data[0] = temp;
+    entities.length = 1;
 
     //Initialise Entities
     Entity camera = {.position={100, 0, 100}, .rotation={0, M_PI/2},
