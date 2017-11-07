@@ -12,7 +12,7 @@ while arg[i] ~= nil do
             outText = outText .. text:sub(j,j)
         end
     end
-    io.output(arg[i]..".no-tabs")
+    io.output(arg[i] .. ".no-tabs")
     io.write(outText)
     i = i + 1
 end
