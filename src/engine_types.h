@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct 
+typedef struct
 {
     uint32_t* pixels;
     float* zBuffer;
@@ -18,7 +18,7 @@ typedef struct
     int z;
 } Vector3Int;
 
-typedef struct 
+typedef struct
 {
     float x;
     float y;

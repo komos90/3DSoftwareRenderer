@@ -72,7 +72,7 @@ int main( int argc, char* args[] )
     }
     SDL_Window* window = SDL_CreateWindow(
         "Pixel buffer Playground :P", SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, 
+        SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT,
         SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (window == NULL)
     {
@@ -97,14 +97,14 @@ int main( int argc, char* args[] )
 
     //Initialise Meshes and Entities ====
     //Load meshes
-    cubeMesh = loadMeshFromFile("../res/meshes/cube.raw");
-    plane = loadMeshFromFile("../res/meshes/plane.raw");
-    monkey = loadMeshFromFile("../res/meshes/monkey.raw");
-    monkeyHd = loadMeshFromFile("../res/meshes/monkeyhd.raw");
-    monkeySuperHd = loadMeshFromFile("../res/meshes/monkeysuperhd.raw");
+    cubeMesh = loadMeshFromFile("res/meshes/cube.raw");
+    plane = loadMeshFromFile("res/meshes/plane.raw");
+    monkey = loadMeshFromFile("res/meshes/monkey.raw");
+    monkeyHd = loadMeshFromFile("res/meshes/monkeyhd.raw");
+    monkeySuperHd = loadMeshFromFile("res/meshes/monkeysuperhd.raw");
 
     //Load level from file and add level entities to entity list
-    //Level level = loadLevel("../res/levels/level2.lvl");
+    //Level level = loadLevel("res/levels/level2.lvl");
     //EntityArray entities = createLevelEntities(level);
     EntityArray entities;
     entities.data = (Entity*)malloc(sizeof(Entity));
@@ -118,8 +118,8 @@ int main( int argc, char* args[] )
 
     //Get input devices' states
     SDL_Joystick* gamePad = SDL_JoystickOpen(0);
-    const uint8_t* keyState = SDL_GetKeyboardState(NULL);    
-    
+    const uint8_t* keyState = SDL_GetKeyboardState(NULL);
+
     bool running = true;
     bool paused = false;
     bool shouldDrawWireframe = false;
@@ -129,10 +129,10 @@ int main( int argc, char* args[] )
     int framerateDisplayDelayCounter = 0;
 
     //Main Loop ====
-    while(running)    
+    while(running)
     {
         int frameStartTime = SDL_GetTicks();
-        
+
         //SDL Event Loop
         SDL_Event e;
         while (SDL_PollEvent(&e))
@@ -170,12 +170,15 @@ int main( int argc, char* args[] )
                     case SDLK_2:
                         shouldDrawSurfaces = !shouldDrawSurfaces;
                         break;
+                    case SDLK_ESCAPE:
+                        running = false;
+                        break;
                 }
                 break;
             case SDL_MOUSEMOTION:
                 camera.rotation.y -= e.motion.xrel * 0.001;
-               
-                //Keep look up and down bounded 
+
+                //Keep look up and down bounded
                 float newCamRotX = camera.rotation.x - e.motion.yrel * 0.001;
                 if (newCamRotX > -M_PI/2 && newCamRotX < M_PI/2)
                     camera.rotation.x = newCamRotX;
@@ -222,9 +225,9 @@ int main( int argc, char* args[] )
             }
         }
         //Keyboard Input
-        { 
+        {
             Vector3 oldCameraPos = camera.position;
-            int moveVel = 3; 
+            int moveVel = 3;
             if (keyState[SDL_SCANCODE_A])
             {
                 camera.position.z += moveVel * cosf(camera.rotation.y + M_PI/2);
@@ -260,18 +263,18 @@ int main( int argc, char* args[] )
                 camera.position = oldCameraPos;
             }
         }
-        
+
         if(!paused)
         {
             //entities.data[0].rotation.x += 0.01;
             entities.data[0].rotation.y += 0.01;
-        }    
-       
-        //Send game entities to gfx engine to be rendered 
+        }
+
+        //Send game entities to gfx engine to be rendered
         draw(pixelBuffer, camera, entities.data, entities.length, shouldDrawWireframe, shouldDrawSurfaces);
 
         //Render the pixel buffer to the screen
-        SDL_UpdateTexture(screenTexture, NULL, pixelBuffer.pixels, SCREEN_WIDTH * sizeof(uint32_t));        
+        SDL_UpdateTexture(screenTexture, NULL, pixelBuffer.pixels, SCREEN_WIDTH * sizeof(uint32_t));
         SDL_RenderCopy(renderer, screenTexture, NULL, NULL);
         SDL_RenderPresent(renderer);
 

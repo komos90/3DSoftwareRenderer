@@ -1,4 +1,8 @@
 *.swo
 *.swp
 com.bat
-bin/gmon.out
+bin/*
+libs/*
+
+!libs/placeholder.txt
+!bin/placeholder.txt
